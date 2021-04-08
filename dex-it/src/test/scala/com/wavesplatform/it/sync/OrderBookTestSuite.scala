@@ -4,6 +4,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.wavesplatform.dex.api.http.entities.HttpMessage
 import com.wavesplatform.dex.api.http.entities.HttpOrderStatus.Status
 import com.wavesplatform.dex.domain.account.KeyPair
+import com.wavesplatform.dex.domain.asset.Asset
 import com.wavesplatform.dex.domain.asset.Asset.Waves
 import com.wavesplatform.dex.domain.order.Order.PriceConstant
 import com.wavesplatform.dex.domain.order.OrderType._
@@ -45,6 +46,32 @@ class OrderBookTestSuite extends MatcherSuiteBase {
     wavesNode1.start()
     broadcastAndAwait(IssueUsdTx, IssueWctTx)
     dex1.start()
+  }
+
+  "OrderBook deletion while async places" in {
+    val acc = mkAccountWithBalance(300.waves -> Waves, 300.usd -> usd)
+    val now = System.currentTimeMillis()
+
+    val futures = (0 until 100).map { i =>
+      val order = mkOrder(acc, wavesUsdPair, BUY, 1.waves, 100, ts = now + i)
+
+      if (i == 90) {
+        dex1.api.deleteOrderBook(wavesUsdPair)
+      }
+
+      dex1.asyncApi.place(order).recover {
+        case e: Throwable => println(s"Error during operation: $e"); null
+      }
+    }
+
+    Await.result(Future.sequence(futures), 1.minute)
+
+    eventually {
+      dex1.api.getTradableBalance(acc, wavesUsdPair) should matchTo(Map[Asset, Long](
+        Waves -> 300.waves,
+        usd -> 300.usd
+      ))
+    }
   }
 
   "Place orders and delete the order book" in {

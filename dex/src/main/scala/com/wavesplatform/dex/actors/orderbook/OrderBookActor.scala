@@ -140,6 +140,8 @@ class OrderBookActor(
               // snapshotStore ! OrderBookSnapshotStoreActor.Message.Delete(assetPair)
               aggregatedRef ! AggregatedOrderBookActor.Event.OrderBookRemoved
               context.stop(self)
+              log.info("SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP")
+              Thread.sleep(5000)
           }
       }
 
