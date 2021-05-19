@@ -7,7 +7,6 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives.respondWithHeader
 import akka.pattern.{ask, gracefulStop, CircuitBreaker}
 import akka.stream.Materializer
-import akka.stream.scaladsl.Sink
 import akka.util.Timeout
 import cats.data.EitherT
 import cats.instances.future.catsStdInstancesForFuture
@@ -50,6 +49,7 @@ import com.wavesplatform.dex.logs.SystemInformationReporter
 import com.wavesplatform.dex.model.{AssetPairBuilder, ExchangeTransactionCreator, Fee, OrderValidator, ValidationStages}
 import com.wavesplatform.dex.queue._
 import com.wavesplatform.dex.settings.MatcherSettings
+import com.wavesplatform.dex.settings.utils.ConfigOps.ConfigOps
 import com.wavesplatform.dex.time.NTP
 import kamon.Kamon
 import monix.execution.ExecutionModel
@@ -67,7 +67,6 @@ import scala.concurrent.{blocking, Await, Future, Promise}
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
-import com.wavesplatform.dex.settings.utils.ConfigOps.ConfigOps
 
 class Application(settings: MatcherSettings, config: Config)(implicit val actorSystem: ActorSystem) extends ScorexLogging {
 
@@ -407,11 +406,9 @@ class Application(settings: MatcherSettings, config: Config)(implicit val actorS
       http.newServerAt(settings.restApi.address, settings.restApi.port)
         .adaptSettings { settings =>
           settings.withParserSettings(settings.parserSettings.withCustomMediaTypes(CustomMediaTypes.`application/hocon`))
-        }.connectionSource().to {
-          Sink.foreach { connection =>
-            connection.handleWith(MetricHttpFlow.metricFlow(combinedRoute))
-          }
-        }.run().map(_.addToCoordinatedShutdown(hardTerminationDeadline = 5.seconds))
+        }
+        .bindFlow(MetricHttpFlow.metricFlow(combinedRoute))
+        .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 5.seconds))
     } map { serverBinding =>
       log.info(s"REST and WebSocket API bound to ${serverBinding.localAddress}")
     }
