@@ -67,8 +67,7 @@ object ValidatedCommand {
   )
 
   private def bytesToSource(xs: Array[Byte]): Source =
-    if (xs.length > 1) throw new IllegalArgumentException(s"Can't parse Source from array, xs.length = ${xs.length}")
-    else if (xs.isEmpty) Source.NotTracked
+    if (xs.isEmpty) Source.NotTracked
     else
       xs.head match {
         case 1 => Source.Request
