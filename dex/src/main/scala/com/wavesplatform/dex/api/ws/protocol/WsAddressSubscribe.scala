@@ -60,7 +60,7 @@ object WsAddressSubscribe {
       (__ \ "S").format[Address] and
       (__ \ "t").format[String] and
       (__ \ "j").format[String] and
-      (__ \ "b" \ "f").formatNullable[Set[WsAddressBalancesFilter]]
+      (__ \ "b").formatNullable((__ \"f").format[Set[WsAddressBalancesFilter]])
   )(
     (_, key, authType, jwt, filters) => WsAddressSubscribe(key, authType, jwt, filters.getOrElse(Set.empty)),
     unlift(WsAddressSubscribe.wsUnapply)
