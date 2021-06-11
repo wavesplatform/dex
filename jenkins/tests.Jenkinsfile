@@ -25,6 +25,7 @@ pipeline {
                     }
                 }
                 sh 'git fetch --tags'
+                sh "rm -rf allure-results || true"
                 sh 'docker rmi `docker images --format "{{.Repository}}:{{.Tag}}" | grep "wavesplatform"` || true'
                 sh 'docker system prune -f || true'
                 sh 'find ~/.sbt/1.0/staging/*/waves -type d -name target | xargs -I{} rm -rf {}'

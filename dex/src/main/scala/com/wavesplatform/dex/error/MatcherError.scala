@@ -79,6 +79,14 @@ case object FeatureNotImplemented extends MatcherError(commonEntity, feature, un
 case object FeatureDisabled extends MatcherError(commonEntity, feature, disabled, e"This feature is disabled, contact with the administrator")
 case object Balancing extends MatcherError(webSocket, commonEntity, optimization, e"System is balancing the load. Please reconnect")
 
+case class OrderBookNotFound(theAssetPair: AssetPair)
+  extends MatcherError(
+    orderBook,
+    commonEntity,
+    notFound,
+    e"The order book for ${Symbol("assetPair") -> theAssetPair} has been deleted or does not exist"
+  )
+
 case class OrderBookBroken(theAssetPair: AssetPair)
     extends MatcherError(
       orderBook,

@@ -86,6 +86,7 @@ case object InvalidSignature extends MatcherResponse(C.BadRequest, error.Request
 case class NotImplemented(error: MatcherError) extends MatcherResponse(C.NotImplemented, error)
 case class CanNotPersist(error: MatcherError) extends MatcherResponse(C.ServiceUnavailable, error)
 case class OrderBookUnavailable(error: MatcherError) extends MatcherResponse(C.ServiceUnavailable, error)
+case class OrderBookNotFound(error: MatcherError) extends MatcherResponse(C.NotFound, error)
 case object DuringStart extends MatcherResponse(C.ServiceUnavailable, error.MatcherIsStarting)
 case object DuringShutdown extends MatcherResponse(C.ServiceUnavailable, error.MatcherIsStopping)
 case object TimedOut extends MatcherResponse(C.InternalServerError, error.RequestTimeout)
