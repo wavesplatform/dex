@@ -10,6 +10,7 @@ pipeline {
     }
     parameters {
         string(name: 'LABEL', defaultValue: '', description: '')
+        booleanParam(name: 'JENKINS_SHOULD_BUILD_DOCKER_IMAGE', defaultValue: true, description: '')
     }
     environment {
         SBT_HOME = tool name: 'sbt-1.2.6', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'
@@ -19,6 +20,7 @@ pipeline {
         SCALATEST_INCLUDE_TAGS = 'com.wavesplatform.it.tags.SmokeTests'
         DEX_IMAGE = "${REGISTRY}/waves/dex/${DEX_IMAGE}"
         NODE_IMAGE = "${REGISTRY}/waves/dex/${NODE_IMAGE}"
+        JENKINS_SHOULD_BUILD_DOCKER_IMAGE = "${JENKINS_SHOULD_BUILD_DOCKER_IMAGE}"
     }
     stages {
         stage('Cleanup') {
@@ -41,6 +43,9 @@ pipeline {
             }
         }
         stage('Build Docker') {
+            when {
+                expression { JENKINS_SHOULD_BUILD_DOCKER_IMAGE == "true" }
+            }
             steps {
                 sh 'sbt dex-it/docker'
             }
