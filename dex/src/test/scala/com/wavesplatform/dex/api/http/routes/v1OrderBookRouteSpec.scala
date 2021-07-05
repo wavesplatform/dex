@@ -13,6 +13,7 @@ import com.wavesplatform.dex.actors.orderbook.AggregatedOrderBookActor
 import com.wavesplatform.dex.api.RouteSpec
 import com.wavesplatform.dex.api.http.ApiMarshallers._
 import com.wavesplatform.dex.api.http.entities.{HttpOrderBook, HttpV1LevelAgg, HttpV1OrderBook}
+import com.wavesplatform.dex.api.http.routes.v1.OrderBookRoute
 import com.wavesplatform.dex.api.http.{entities, OrderBookHttpInfo}
 import com.wavesplatform.dex.app.MatcherStatus
 import com.wavesplatform.dex.db.WithDb
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-class MatcherApiRouteV1Spec extends RouteSpec("/api/v1") with MatcherSpecBase with PathMockFactory with Eventually with WithDb {
+class v1OrderBookRouteSpec extends RouteSpec("/api/v1") with MatcherSpecBase with PathMockFactory with Eventually with WithDb {
 
   private val settings =
     ConfigSource.fromConfig(ConfigFactory.load()).at("waves.dex").loadOrThrow[MatcherSettings].copy(priceAssets = Seq(usd, Waves))
@@ -104,7 +105,7 @@ class MatcherApiRouteV1Spec extends RouteSpec("/api/v1") with MatcherSpecBase wi
       )
 
     val route =
-      MatcherApiRouteV1(
+      OrderBookRoute(
         assetPairBuilder = new AssetPairBuilder(
           settings,
           {

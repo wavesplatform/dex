@@ -1,18 +1,13 @@
-package com.wavesplatform.dex.api.http.routes
+package com.wavesplatform.dex.api.http.routes.v1
 
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.directives.FutureDirectives
-import akka.http.scaladsl.server.{Directive1, Route}
-import com.wavesplatform.dex.api.http.directives.HttpKamonDirectives._
-import com.wavesplatform.dex.api.http.entities.{HttpV1OrderBook, InfoNotFound, InvalidAsset}
+import akka.http.scaladsl.server.Route
+import com.wavesplatform.dex.api.http.directives.HttpKamonDirectives.withMetricsAndTraces
+import com.wavesplatform.dex.api.http.entities.HttpV1OrderBook
 import com.wavesplatform.dex.api.http.{HasStatusBarrier, OrderBookHttpInfo}
 import com.wavesplatform.dex.api.routes.{ApiRoute, AuthRoute, PathMatchers}
 import com.wavesplatform.dex.app.MatcherStatus
-import com.wavesplatform.dex.domain.asset.AssetPair
-import com.wavesplatform.dex.domain.error.ValidationError
 import com.wavesplatform.dex.domain.utils.ScorexLogging
-import com.wavesplatform.dex.error.{ErrorFormatterContext, MatcherError}
+import com.wavesplatform.dex.error.ErrorFormatterContext
 import com.wavesplatform.dex.model.{AssetPairBuilder, MatcherModel}
 import io.swagger.annotations.{Api, ApiImplicitParam, ApiImplicitParams, ApiOperation}
 
@@ -21,7 +16,7 @@ import scala.concurrent.ExecutionContext
 
 @Path("/api/v1")
 @Api(value = "/api v1/")
-case class MatcherApiRouteV1(
+case class OrderBookRoute(
   assetPairBuilder: AssetPairBuilder,
   orderBookHttpInfo: OrderBookHttpInfo,
   matcherStatus: () => MatcherStatus,
@@ -37,25 +32,6 @@ case class MatcherApiRouteV1(
   override lazy val route: Route = pathPrefix("api" / "v1") {
     matcherStatusBarrier(getOrderBook)
   }
-
-  private def withValidAssetPair(pairOrError: Either[ValidationError.InvalidAsset, AssetPair])(f: AssetPair => Route): Route =
-    pairOrError.fold(ia => complete(InvalidAsset(ia.asset, ia.reason)), f)
-
-  private def withAssetPair(
-    p: AssetPair,
-    redirectToInverse: Boolean,
-    suffix: String = "",
-    formatError: MatcherError => ToResponseMarshallable = InfoNotFound.apply
-  ): Directive1[AssetPair] =
-    FutureDirectives.onSuccess(assetPairBuilder.validateAssetPair(p).value) flatMap {
-      case Right(_) => provide(p)
-      case Left(e) if redirectToInverse =>
-        FutureDirectives.onSuccess(assetPairBuilder.validateAssetPair(p.reverse).value) flatMap {
-          case Right(_) => redirect(s"/api/v1/${p.priceAssetStr}/${p.amountAssetStr}$suffix", StatusCodes.MovedPermanently)
-          case Left(_) => complete(formatError(e))
-        }
-      case Left(e) => complete(formatError(e))
-    }
 
   @Path("/orderbook/{amountAsset}/{priceAsset}#V1getOrderBook")
   @ApiOperation(
@@ -80,10 +56,10 @@ case class MatcherApiRouteV1(
   def getOrderBook: Route =
     (path("orderbook" / AssetPairPM) & get) { pairOrError =>
       withMetricsAndTraces("V1.getOrderBook") {
-        withValidAssetPair(pairOrError) { p =>
+        withAssetPair(assetPairBuilder, pairOrError) { p =>
           parameters(Symbol("depth").as[Int].?) {
             depth =>
-              withAssetPair(p, redirectToInverse = true) {
+              withAssetPair(assetPairBuilder, Right(p), redirectToInverse = true) {
                 pair =>
                   complete(orderBookHttpInfo.getHttpView(pair, MatcherModel.Denormalized, depth))
               }
